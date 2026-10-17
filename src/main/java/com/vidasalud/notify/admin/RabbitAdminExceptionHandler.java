@@ -2,7 +2,6 @@ package com.vidasalud.notify.admin;
 
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.amqp.AmqpConnectException;
-import org.springframework.context.MessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -39,7 +38,7 @@ public class RabbitAdminExceptionHandler {
             } else {
                 String parametro = resultado.getMethodParameter().getParameterName();
                 resultado.getResolvableErrors().stream()
-                        .map(MessageSourceResolvable::getDefaultMessage)
+                        .map(error -> error.getDefaultMessage())
                         .forEach(msg -> detalles.putIfAbsent(parametro, msg));
             }
         });
