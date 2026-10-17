@@ -1,0 +1,63 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: vidasalud-ms-notify
+  rabbitmq:
+    # Lista de nodos del clúster: si un nodo cae, el cliente se reconecta al siguiente.
+    addresses: ${RABBITMQ_ADDRESSES:localhost:5672,localhost:5673}
+    username: ${RABBITMQ_USER:vidasalud}
+    password: ${RABBITMQ_PASS:vidasalud}
+    connection-timeout: 5s
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: https://login.microsoftonline.com/49cd374a-62d5-4d3d-851e-69058d58e3b5/discovery/v2.0/keys
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
+
+# Toda la topología de RabbitMQ (exchanges, colas, DLQ y bindings) se define aquí y en ningún otro lugar.
+vidasalud:
+  mensajeria:
+    exchanges:
+      # Exchange topic donde ms-appointments publica los eventos de citas (cita.creada, cita.confirmada, ...).
+      citas: vidasalud.citas.topic
+      # Exchange direct que recibe los mensajes rechazados y los enruta a la DLQ de cada cola.
+      dead-letter: vidasalud.dlx.direct
+    colas:
+      notificaciones:
+        nombre: vidasalud.notificaciones
+        patron: cita.#
+        dlq: vidasalud.notificaciones.dlq
+        dlq-routing-key: notificaciones.dlq
+      tickets:
+        nombre: vidasalud.tickets
+        patron: cita.confirmada
+        dlq: vidasalud.tickets.dlq
+        dlq-routing-key: tickets.dlq
+      documentos:
+        nombre: vidasalud.documentos
+        patron: cita.cerrada
+        dlq: vidasalud.documentos.dlq
+        dlq-routing-key: documentos.dlq
+    reintentos:
+      # Intentos totales ante un error transitorio antes de enviar el mensaje a la DLQ.
+      maximo: 3
+      header: x-reintentos
+    prefetch: 10
+  seguridad:
+    # Valida el JWT de Entra ID. Solo se desactiva con el perfil "local" para pruebas sin token.
+    habilitada: ${SEGURIDAD_HABILITADA:true}
+  simulacion:
+    # Si el nombre del paciente contiene este texto, el envío de correo falla de forma transitoria.
+    # Sirve para demostrar los reintentos y el envío final a la DLQ.
+    falla-transitoria-paciente: "[falla-temporal]"

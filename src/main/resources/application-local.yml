@@ -1,0 +1,5 @@
+# Perfil para desarrollo local: permite probar la API sin token de Entra ID.
+# Uso: mvn spring-boot:run -Dspring-boot.run.profiles=local
+vidasalud:
+  seguridad:
+    habilitada: false
