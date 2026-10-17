@@ -6,7 +6,7 @@ Microservicio de VidaSalud que **consume los eventos de citas desde RabbitMQ** (
 
 - Java 17, Spring Boot 3.2.5, Spring AMQP (RabbitMQ), Spring Validation.
 - Spring Security con OAuth2 Resource Server: valida el JWT de Microsoft Entra ID.
-- Spring Boot Actuator para el estado del servicio.
+- Spring Boot Actuator para el estado del servicio y springdoc-openapi (Swagger UI) para documentar la API.
 - Maven y Docker.
 
 ## Topología de mensajería
@@ -33,7 +33,24 @@ ms-appointments ──► vidasalud.citas.topic (topic)
 
 ## Confirmación de mensajes y errores
 
-Los consumidores usan `@RabbitListener` con **ACK manual**. La política es la misma para todos y está en `messaging/ConfirmacionMensajes`:
+Los consumidores usan `@RabbitListener` con **ACK manual** (`RabbitListenerConfig`). Cada consumidor confirma explícitamente:
+
+```java
+@RabbitListener(queues = "${vidasalud.mensajeria.colas.tickets.nombre}")
+public void recibir(Message mensaje, Channel canal, @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) throws IOException {
+    try {
+        CitaEvento evento = confirmacion.leerEvento(mensaje);   // JSON inválido → MensajeNoRecuperableException
+        service.emitirTicket(evento);
+        canal.basicAck(deliveryTag, false);                      // éxito
+    } catch (MensajeNoRecuperableException e) {
+        canal.basicNack(deliveryTag, false, false);              // no recuperable → DLQ
+    } catch (RuntimeException e) {
+        confirmacion.reintentarOEnviarADlq(mensaje, canal, deliveryTag, e);  // transitorio → reintento o DLQ
+    }
+}
+```
+
+La política de reintentos que comparten los tres consumidores está en `messaging/ConfirmacionMensajes`:
 
 | Situación | Acción | Resultado |
 |---|---|---|
@@ -48,6 +65,8 @@ Cada envío a la DLQ queda registrado en el log con nivel `ERROR` y el motivo. L
 ## API REST
 
 Todas las rutas requieren un JWT de Entra ID (`Authorization: Bearer <token>`).
+
+**Documentación interactiva (OpenAPI):** `http://<host>:8083/swagger-ui.html`. Para probar las rutas, haz clic en **Authorize** y pega el access token.
 
 ### Administración de RabbitMQ (rol `Admin`)
 

@@ -13,20 +13,18 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.function.Consumer;
 
 /**
- * Política única de confirmación para todos los consumidores (ack manual):
+ * Apoyo común de los consumidores: lectura del evento y política de reintentos.
+ * Cada listener decide explícitamente ack / nack; esta clase solo resuelve los dos pasos que comparten:
  * <ul>
- *   <li><b>Éxito</b> → {@code basicAck}.</li>
- *   <li><b>Error no recuperable</b> ({@link MensajeNoRecuperableException}: JSON inválido o datos faltantes)
- *       → {@code basicNack} sin requeue → el broker lo desvía a la DLQ de la cola.</li>
- *   <li><b>Error transitorio</b> (cualquier otra excepción) → se republica en la misma cola con el header
- *       de reintentos incrementado y se hace ack del original. Al alcanzar el máximo de intentos
- *       → {@code basicNack} sin requeue → DLQ.</li>
- *   <li>Si ni siquiera se puede republicar (broker caído) → {@code basicNack} con requeue, para no perder el mensaje.</li>
+ *   <li>{@link #leerEvento}: convierte el JSON y valida los datos mínimos. Si falla lanza
+ *       {@link MensajeNoRecuperableException} → el listener hace {@code basicNack} sin requeue → DLQ.</li>
+ *   <li>{@link #reintentarOEnviarADlq}: ante un error transitorio republica el mensaje en la misma cola con el
+ *       header de reintentos incrementado y hace {@code basicAck} del original. Al llegar al máximo hace
+ *       {@code basicNack} sin requeue → DLQ. Si ni siquiera puede republicar, {@code basicNack} con requeue
+ *       para no perder el mensaje.</li>
  * </ul>
- * Todo rechazo hacia la DLQ queda registrado en el log con nivel ERROR.
  */
 @Component
 public class ConfirmacionMensajes {
@@ -46,56 +44,52 @@ public class ConfirmacionMensajes {
         this.props = props;
     }
 
-    public void procesar(Message mensaje, Channel canal, Consumer<CitaEvento> accion) throws IOException {
-        long tag = mensaje.getMessageProperties().getDeliveryTag();
-        String cola = mensaje.getMessageProperties().getConsumerQueue();
-        int intento = intentosPrevios(mensaje) + 1;
-        int maximo = props.reintentos().maximo();
-
-        try {
-            CitaEvento evento = convertir(mensaje);
-            accion.accept(evento);
-            canal.basicAck(tag, false);
-            log.info("[{}] ACK evento {} de la cita {} (intento {}/{})", cola, evento.tipo(), evento.citaId(), intento, maximo);
-        } catch (MensajeNoRecuperableException e) {
-            canal.basicNack(tag, false, false);
-            log.error("[{}] NACK no recuperable → DLQ. Motivo: {}. Cuerpo: {}", cola, e.getMessage(), cuerpo(mensaje));
-        } catch (Exception e) {
-            if (intento >= maximo) {
-                canal.basicNack(tag, false, false);
-                log.error("[{}] NACK tras agotar {} intentos → DLQ. Último error: {}", cola, maximo, e.getMessage());
-                return;
-            }
-            try {
-                Message reintento = MessageBuilder.fromMessage(mensaje)
-                        .setHeader(props.reintentos().header(), intento)
-                        .build();
-                rabbitTemplate.send(EXCHANGE_POR_DEFECTO, cola, reintento);
-                canal.basicAck(tag, false);
-                log.warn("[{}] Error transitorio en intento {}/{}, se reintenta: {}", cola, intento, maximo, e.getMessage());
-            } catch (AmqpException errorRepublicando) {
-                canal.basicNack(tag, false, true);
-                log.error("[{}] No se pudo republicar para reintento, se devuelve a la cola: {}", cola, errorRepublicando.getMessage());
-            }
-        }
-    }
-
-    private CitaEvento convertir(Message mensaje) {
+    /** Convierte el cuerpo a {@link CitaEvento}. Un JSON inválido o sin citaId/tipo no se arregla reintentando. */
+    public CitaEvento leerEvento(Message mensaje) {
         CitaEvento evento;
         try {
             evento = objectMapper.readValue(mensaje.getBody(), CitaEvento.class);
         } catch (IOException e) {
-            throw new MensajeNoRecuperableException("JSON inválido para CitaEvento", e);
+            throw new MensajeNoRecuperableException("JSON inválido para CitaEvento. Cuerpo: " + cuerpo(mensaje), e);
         }
         if (evento == null || evento.citaId() == null || evento.tipo() == null || evento.tipo().isBlank()) {
-            throw new MensajeNoRecuperableException("El evento no trae citaId o tipo");
+            throw new MensajeNoRecuperableException("El evento no trae citaId o tipo. Cuerpo: " + cuerpo(mensaje));
         }
         return evento;
     }
 
-    private int intentosPrevios(Message mensaje) {
+    /** Número de intento actual (1 la primera vez), leído del header de reintentos. */
+    public int intentoActual(Message mensaje) {
         Object valor = mensaje.getMessageProperties().getHeader(props.reintentos().header());
-        return valor instanceof Number n ? n.intValue() : 0;
+        return (valor instanceof Number n ? n.intValue() : 0) + 1;
+    }
+
+    public int maximoIntentos() {
+        return props.reintentos().maximo();
+    }
+
+    /** Decide entre reintentar o mandar a la DLQ un mensaje cuyo procesamiento falló por un error transitorio. */
+    public void reintentarOEnviarADlq(Message mensaje, Channel canal, long deliveryTag, Exception error) throws IOException {
+        String cola = mensaje.getMessageProperties().getConsumerQueue();
+        int intento = intentoActual(mensaje);
+        int maximo = maximoIntentos();
+
+        if (intento >= maximo) {
+            canal.basicNack(deliveryTag, false, false);
+            log.error("[{}] NACK tras agotar {} intentos → DLQ. Último error: {}", cola, maximo, error.getMessage());
+            return;
+        }
+        try {
+            Message reintento = MessageBuilder.fromMessage(mensaje)
+                    .setHeader(props.reintentos().header(), intento)
+                    .build();
+            rabbitTemplate.send(EXCHANGE_POR_DEFECTO, cola, reintento);
+            canal.basicAck(deliveryTag, false);
+            log.warn("[{}] Error transitorio en intento {}/{}, se reintenta: {}", cola, intento, maximo, error.getMessage());
+        } catch (AmqpException errorRepublicando) {
+            canal.basicNack(deliveryTag, false, true);
+            log.error("[{}] No se pudo republicar para reintento, se devuelve a la cola: {}", cola, errorRepublicando.getMessage());
+        }
     }
 
     private String cuerpo(Message mensaje) {
