@@ -1,6 +1,8 @@
 package com.vidasalud.notify.admin;
 
 import jakarta.validation.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.AmqpConnectException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +20,8 @@ import java.util.Map;
 /** Convierte los errores de la API de administración en respuestas JSON con un mensaje claro en español. */
 @RestControllerAdvice(assignableTypes = RabbitAdminController.class)
 public class RabbitAdminExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(RabbitAdminExceptionHandler.class);
 
     /** Errores de @Valid en el cuerpo (MethodArgumentNotValidException) o en query params (@ModelAttribute). */
     @ExceptionHandler(BindException.class)
@@ -57,6 +61,7 @@ public class RabbitAdminExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, Object>> cuerpoIlegible(HttpMessageNotReadableException e) {
+        log.warn("Cuerpo ilegible en la API de administración: {}", e.getMostSpecificCause().getMessage());
         return respuesta(HttpStatus.BAD_REQUEST,
                 "El cuerpo no es un JSON válido o tiene un valor no permitido (por ejemplo, 'tipo' debe ser DIRECT, TOPIC, FANOUT o HEADERS)",
                 Map.of());
@@ -74,6 +79,7 @@ public class RabbitAdminExceptionHandler {
 
     @ExceptionHandler(AmqpConnectException.class)
     public ResponseEntity<Map<String, Object>> sinConexion(AmqpConnectException e) {
+        log.error("Sin conexión con RabbitMQ: {}", e.getMessage());
         return respuesta(HttpStatus.SERVICE_UNAVAILABLE, "No hay conexión con RabbitMQ", Map.of());
     }
 
