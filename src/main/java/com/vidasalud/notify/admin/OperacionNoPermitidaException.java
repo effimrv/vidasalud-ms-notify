@@ -2,6 +2,9 @@ package com.vidasalud.notify.admin;
 
 /** La operación es válida en forma pero choca con el estado del broker o con un recurso protegido. */
 public class OperacionNoPermitidaException extends RuntimeException {
+
+    private static final long serialVersionUID = 1L;
+
     public OperacionNoPermitidaException(String mensaje) {
         super(mensaje);
     }

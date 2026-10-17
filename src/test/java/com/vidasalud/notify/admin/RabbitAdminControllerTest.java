@@ -25,6 +25,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/** Los builders de MockMvc y Spring Security Test no declaran nulabilidad: se silencia ese aviso del IDE. */
+@SuppressWarnings("null")
 @WebMvcTest(RabbitAdminController.class)
 @Import(SecurityConfig.class)
 class RabbitAdminControllerTest {

@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * API REST para administrar RabbitMQ (solo rol Admin).
@@ -61,7 +62,8 @@ public class RabbitAdminController {
     @PostMapping("/queues")
     public ResponseEntity<ColaInfoResponse> crearCola(@Valid @RequestBody CrearColaRequest req) {
         ColaInfoResponse cola = service.crearCola(req);
-        return ResponseEntity.created(URI.create("/api/rabbit/queues/" + cola.nombre())).body(cola);
+        URI ubicacion = Objects.requireNonNull(URI.create("/api/rabbit/queues/" + cola.nombre()));
+        return ResponseEntity.created(ubicacion).body(cola);
     }
 
     @Operation(summary = "Elimina una cola (no permite eliminar las del sistema)")

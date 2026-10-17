@@ -64,7 +64,7 @@ public class RabbitAdminService {
         if (req.exchangeDeadLetter() != null) builder.deadLetterExchange(req.exchangeDeadLetter());
         if (req.routingKeyDeadLetter() != null) builder.deadLetterRoutingKey(req.routingKeyDeadLetter());
         if (req.ttlMensajesMs() != null) builder.ttl(req.ttlMensajesMs());
-        if (req.largoMaximo() != null) builder.maxLength(req.largoMaximo());
+        if (req.largoMaximo() != null) builder.maxLength(req.largoMaximo().longValue());
 
         ejecutar(() -> amqpAdmin.declareQueue(builder.build()));
         log.info("Admin: cola '{}' creada (durable={}, dlx={})", req.nombre(), req.esDurable(), req.exchangeDeadLetter());

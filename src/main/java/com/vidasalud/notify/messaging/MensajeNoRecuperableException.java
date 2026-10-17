@@ -6,6 +6,9 @@ package com.vidasalud.notify.messaging;
  * Cualquier otra excepción se considera transitoria y se reintenta.
  */
 public class MensajeNoRecuperableException extends RuntimeException {
+
+    private static final long serialVersionUID = 1L;
+
     public MensajeNoRecuperableException(String mensaje) {
         super(mensaje);
     }
