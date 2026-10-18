@@ -2,6 +2,8 @@
 
 Microservicio de VidaSalud que **consume los eventos de citas desde RabbitMQ** (notificaciones al paciente, tickets de atención y comprobantes) y **administra RabbitMQ por REST** (colas, exchanges y bindings).
 
+Matriz de funcionalidades y documentación del proyecto: [vidasalud-docs](https://github.com/effimrv/vidasalud-docs).
+
 ## Tecnologías
 
 - Java 17, Spring Boot 3.2.5, Spring AMQP (RabbitMQ), Spring Validation.
