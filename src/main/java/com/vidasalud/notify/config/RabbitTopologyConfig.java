@@ -19,6 +19,11 @@ import org.springframework.context.annotation.Configuration;
  *                        ├─ cita.#          ──► vidasalud.notificaciones ─┐
  *                        ├─ cita.confirmada ──► vidasalud.tickets ────────┤ nack sin requeue
  *                        └─ cita.cerrada    ──► vidasalud.documentos ─────┤
+ *                                                                         │
+ * comandos puntuales ─► [vidasalud.comandos.direct] (direct)              │
+ *                        ├─ notificacion.enviar ──► vidasalud.notificaciones
+ *                        ├─ ticket.emitir       ──► vidasalud.tickets      │
+ *                        └─ documento.generar   ──► vidasalud.documentos   │
  *                                                                         ▼
  *                     [vidasalud.dlx.direct] (direct)
  *                        ├─ notificaciones.dlq ──► vidasalud.notificaciones.dlq
@@ -41,6 +46,12 @@ public class RabbitTopologyConfig {
     @Bean
     public TopicExchange exchangeCitas() {
         return ExchangeBuilder.topicExchange(props.exchanges().citas()).durable(true).build();
+    }
+
+    /** Exchange direct de comandos: encarga una tarea a una sola cola con una routing key exacta. */
+    @Bean
+    public DirectExchange exchangeComandos() {
+        return ExchangeBuilder.directExchange(props.exchanges().comandos()).durable(true).build();
     }
 
     /** Exchange direct de dead-letter: cada DLQ se enlaza con una routing key exacta. */
@@ -68,6 +79,12 @@ public class RabbitTopologyConfig {
     }
 
     @Bean
+    public Binding bindingNotificacionesDirecto() {
+        return BindingBuilder.bind(colaNotificaciones()).to(exchangeComandos())
+                .with(props.colas().notificaciones().claveDirecta());
+    }
+
+    @Bean
     public Binding bindingNotificacionesDlq() {
         return BindingBuilder.bind(colaNotificacionesDlq()).to(exchangeDeadLetter())
                 .with(props.colas().notificaciones().dlqRoutingKey());
@@ -92,6 +109,12 @@ public class RabbitTopologyConfig {
     }
 
     @Bean
+    public Binding bindingTicketsDirecto() {
+        return BindingBuilder.bind(colaTickets()).to(exchangeComandos())
+                .with(props.colas().tickets().claveDirecta());
+    }
+
+    @Bean
     public Binding bindingTicketsDlq() {
         return BindingBuilder.bind(colaTicketsDlq()).to(exchangeDeadLetter())
                 .with(props.colas().tickets().dlqRoutingKey());
@@ -113,6 +136,12 @@ public class RabbitTopologyConfig {
     public Binding bindingDocumentos() {
         return BindingBuilder.bind(colaDocumentos()).to(exchangeCitas())
                 .with(props.colas().documentos().patron());
+    }
+
+    @Bean
+    public Binding bindingDocumentosDirecto() {
+        return BindingBuilder.bind(colaDocumentos()).to(exchangeComandos())
+                .with(props.colas().documentos().claveDirecta());
     }
 
     @Bean

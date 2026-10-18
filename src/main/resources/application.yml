@@ -27,26 +27,36 @@ management:
 
 # Toda la topología de RabbitMQ (exchanges, colas, DLQ y bindings) se define aquí y en ningún otro lugar.
 vidasalud:
+  jwt:
+    # Emisores aceptados (tokens v2.0 y v1.0 del tenant Proyecto1) y audiencias de la API VidaSalud.
+    emisores: https://login.microsoftonline.com/49cd374a-62d5-4d3d-851e-69058d58e3b5/v2.0,https://sts.windows.net/49cd374a-62d5-4d3d-851e-69058d58e3b5/
+    audiencias: 2c70c5bc-6b56-4564-bca4-ec0821f3cefa,api://2c70c5bc-6b56-4564-bca4-ec0821f3cefa
   mensajeria:
     exchanges:
       # Exchange topic donde ms-appointments publica los eventos de citas (cita.creada, cita.confirmada, ...).
       citas: vidasalud.citas.topic
+      # Exchange direct de comandos: encarga una tarea puntual a una sola cola con una routing key exacta
+      # (por ejemplo, reenviar una notificación o volver a emitir un ticket).
+      comandos: vidasalud.comandos.direct
       # Exchange direct que recibe los mensajes rechazados y los enruta a la DLQ de cada cola.
       dead-letter: vidasalud.dlx.direct
     colas:
       notificaciones:
         nombre: vidasalud.notificaciones
         patron: cita.#
+        clave-directa: notificacion.enviar
         dlq: vidasalud.notificaciones.dlq
         dlq-routing-key: notificaciones.dlq
       tickets:
         nombre: vidasalud.tickets
         patron: cita.confirmada
+        clave-directa: ticket.emitir
         dlq: vidasalud.tickets.dlq
         dlq-routing-key: tickets.dlq
       documentos:
         nombre: vidasalud.documentos
         patron: cita.cerrada
+        clave-directa: documento.generar
         dlq: vidasalud.documentos.dlq
         dlq-routing-key: documentos.dlq
     reintentos:

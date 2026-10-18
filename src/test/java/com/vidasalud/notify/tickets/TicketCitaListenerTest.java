@@ -44,9 +44,10 @@ class TicketCitaListenerTest {
         canal = mock(Channel.class);
         rabbitTemplate = mock(RabbitTemplate.class);
         service = mock(TicketService.class);
-        Cola cola = new Cola(COLA, "cita.confirmada", COLA + ".dlq", "tickets.dlq");
+        Cola cola = new Cola(COLA, "cita.confirmada", "ticket.emitir", COLA + ".dlq", "tickets.dlq");
         MensajeriaProperties props = new MensajeriaProperties(
-                new MensajeriaProperties.Exchanges("vidasalud.citas.topic", "vidasalud.dlx.direct"),
+                new MensajeriaProperties.Exchanges(
+                        "vidasalud.citas.topic", "vidasalud.comandos.direct", "vidasalud.dlx.direct"),
                 new MensajeriaProperties.Colas(cola, cola, cola),
                 new MensajeriaProperties.Reintentos(3, "x-reintentos"),
                 10);

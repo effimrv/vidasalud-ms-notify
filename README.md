@@ -7,7 +7,7 @@ Matriz de funcionalidades y documentación del proyecto: [vidasalud-docs](https:
 ## Tecnologías
 
 - Java 17, Spring Boot 3.2.5, Spring AMQP (RabbitMQ), Spring Validation.
-- Spring Security con OAuth2 Resource Server: valida el JWT de Microsoft Entra ID.
+- Spring Security con OAuth2 Resource Server: valida firma, vigencia, emisor y audiencia del JWT de Microsoft Entra ID (`config/ValidacionJwtConfig`).
 - Spring Boot Actuator para el estado del servicio y springdoc-openapi (Swagger UI) para documentar la API.
 - Maven y Docker.
 
@@ -20,6 +20,11 @@ ms-appointments ──► vidasalud.citas.topic (topic)
                       ├─ cita.#          ──► vidasalud.notificaciones ─┐
                       ├─ cita.confirmada ──► vidasalud.tickets ────────┤ nack sin requeue
                       └─ cita.cerrada    ──► vidasalud.documentos ─────┤
+                                                                       │
+comandos puntuales ─► vidasalud.comandos.direct (direct)               │
+                      ├─ notificacion.enviar ──► vidasalud.notificaciones
+                      ├─ ticket.emitir       ──► vidasalud.tickets      │
+                      └─ documento.generar   ──► vidasalud.documentos   │
                                                                        ▼
                     vidasalud.dlx.direct (direct)
                       ├─ notificaciones.dlq ──► vidasalud.notificaciones.dlq
@@ -27,11 +32,17 @@ ms-appointments ──► vidasalud.citas.topic (topic)
                       └─ documentos.dlq     ──► vidasalud.documentos.dlq
 ```
 
-| Caso de uso | Cola | Recibe | Consumidor |
-|---|---|---|---|
-| Avisar al paciente de cada cambio | `vidasalud.notificaciones` | todos los eventos (`cita.#`) | `notificaciones/NotificacionCitaListener` |
-| Emitir el número de atención | `vidasalud.tickets` | `cita.confirmada` | `tickets/TicketCitaListener` |
-| Generar el comprobante de atención | `vidasalud.documentos` | `cita.cerrada` | `documentos/DocumentoCitaListener` |
+| Exchange | Tipo | Uso |
+|---|---|---|
+| `vidasalud.citas.topic` | topic | ms-appointments publica cada cambio de una cita; cada cola elige los eventos por patrón |
+| `vidasalud.comandos.direct` | direct | Encarga una tarea puntual a una sola cola con una routing key exacta (reenviar un aviso, volver a emitir un ticket o un comprobante) |
+| `vidasalud.dlx.direct` | direct | Dead-letter: lleva cada mensaje rechazado a la DLQ de su cola |
+
+| Caso de uso | Cola | Binding topic | Binding direct | DLQ | Consumidor |
+|---|---|---|---|---|---|
+| Avisar al paciente de cada cambio | `vidasalud.notificaciones` | `cita.#` | `notificacion.enviar` | `vidasalud.notificaciones.dlq` | `notificaciones/NotificacionCitaListener` |
+| Emitir el número de atención | `vidasalud.tickets` | `cita.confirmada` | `ticket.emitir` | `vidasalud.tickets.dlq` | `tickets/TicketCitaListener` |
+| Generar el comprobante de atención | `vidasalud.documentos` | `cita.cerrada` | `documento.generar` | `vidasalud.documentos.dlq` | `documentos/DocumentoCitaListener` |
 
 ## Confirmación de mensajes y errores
 
@@ -155,4 +166,5 @@ docker run -d --name notify -p 8083:8083 -e RABBITMQ_ADDRESSES=rabbitmq1:5672,ra
 
 - **Error no recuperable:** publica con `POST /api/rabbit/messages` un `cuerpo` que no sea JSON. El mensaje llega a `vidasalud.notificaciones.dlq` sin reintentos.
 - **Error transitorio:** publica un evento cuyo `pacienteNombre` contenga `[falla-temporal]`. El log muestra los intentos 1/3 y 2/3, y luego el envío a la DLQ.
+- **Exchange direct:** publica con `POST /api/rabbit/messages` en `vidasalud.comandos.direct` con la routing key `ticket.emitir` y el cuerpo de un evento: solo la cola `vidasalud.tickets` lo recibe y se emite el ticket.
 - Para ver cuántos mensajes hay en la DLQ: `GET /api/rabbit/queues/vidasalud.notificaciones.dlq`, o el panel de RabbitMQ en el puerto `15672`.

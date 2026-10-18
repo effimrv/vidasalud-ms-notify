@@ -22,7 +22,12 @@ public record MensajeriaProperties(
         @Valid @NotNull Reintentos reintentos,
         @Min(1) int prefetch) {
 
-    public record Exchanges(@NotBlank String citas, @NotBlank String deadLetter) {}
+    /**
+     * @param citas      exchange topic donde ms-appointments publica los eventos de citas
+     * @param comandos   exchange direct para encargar una tarea puntual a una sola cola
+     * @param deadLetter exchange direct que enruta los mensajes rechazados a su DLQ
+     */
+    public record Exchanges(@NotBlank String citas, @NotBlank String comandos, @NotBlank String deadLetter) {}
 
     public record Colas(@Valid @NotNull Cola notificaciones, @Valid @NotNull Cola tickets, @Valid @NotNull Cola documentos) {
         public List<Cola> todas() {
@@ -33,17 +38,19 @@ public record MensajeriaProperties(
     /**
      * @param nombre        cola principal
      * @param patron        patrón de binding contra el exchange topic de citas
+     * @param claveDirecta  routing key exacta con la que el exchange direct de comandos llega a la cola
      * @param dlq           cola de mensajes muertos asociada
      * @param dlqRoutingKey routing key con la que el exchange de dead-letter llega a la DLQ
      */
-    public record Cola(@NotBlank String nombre, @NotBlank String patron, @NotBlank String dlq, @NotBlank String dlqRoutingKey) {}
+    public record Cola(@NotBlank String nombre, @NotBlank String patron, @NotBlank String claveDirecta,
+                       @NotBlank String dlq, @NotBlank String dlqRoutingKey) {}
 
     public record Reintentos(@Min(1) int maximo, @NotBlank String header) {}
 
     /** Exchanges y colas propios del sistema, que la API de administración no permite eliminar. */
     public List<String> recursosProtegidos() {
         return Stream.concat(
-                Stream.of(exchanges.citas(), exchanges.deadLetter()),
+                Stream.of(exchanges.citas(), exchanges.comandos(), exchanges.deadLetter()),
                 colas.todas().stream().flatMap(c -> Stream.of(c.nombre(), c.dlq()))
         ).toList();
     }
