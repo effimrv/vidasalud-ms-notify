@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Set;
 
 /** Avisa al paciente de cada cambio en su cita. El envío de correo está simulado con un log. */
 @Service
@@ -17,6 +18,8 @@ public class NotificacionService {
 
     private static final Logger log = LoggerFactory.getLogger(NotificacionService.class);
     private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
+    /** Cambios de estado que avisan por correo; el resto solo queda en el registro. */
+    private static final Set<String> CON_CORREO = Set.of("CREADA", "CONFIRMADA");
 
     private final RegistroActividad<Notificacion> registro = new RegistroActividad<>();
     private final String marcaFallaTransitoria;
@@ -38,15 +41,15 @@ public class NotificacionService {
         String fecha = evento.fechaHora() == null ? "" : " para el " + evento.fechaHora().format(FORMATO_FECHA);
         String mensaje = "Hola " + paciente + ", tu cita #" + evento.citaId() + fecha + " " + describir(evento.tipo()) + ".";
 
-        if ("CREADA".equals(evento.tipo())) {
+        if (CON_CORREO.contains(evento.tipo())) {
             // Se envía antes de registrar: si el SMTP falla, el reintento no deja una notificación duplicada.
             correoReservas.enviar(evento.pacienteCorreo(), asunto,
                     PlantillaCorreoReserva.texto(evento, paciente),
                     PlantillaCorreoReserva.html(evento, paciente));
+            log.info("Correo enviado a {}: {}", paciente, asunto);
         }
 
         registro.agregar(new Notificacion(evento.citaId(), paciente, "EMAIL", asunto, mensaje, Instant.now()));
-        log.info("Correo enviado a {}: {}", paciente, asunto);
     }
 
     public List<Notificacion> recientes() {

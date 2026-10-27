@@ -30,6 +30,15 @@ class PlantillaCorreoReservaTest {
     }
 
     @Test
+    void confirmacionAvisaQueLaHoraQuedoConfirmada() {
+        CitaEvento confirmada = new CitaEvento("CONFIRMADA", 42L, "Ana Perez", "ana@example.com", 3L, 7L, "CONFIRMADA",
+                LocalDateTime.of(2026, 11, 2, 9, 30), Instant.now());
+
+        assertThat(PlantillaCorreoReserva.texto(confirmada, "Ana Perez")).contains("Tu cita #42 fue confirmada");
+        assertThat(PlantillaCorreoReserva.html(confirmada, "Ana Perez")).contains("Cita confirmada", "Hora confirmada");
+    }
+
+    @Test
     void sinFechaMuestraPorConfirmar() {
         CitaEvento sinFecha = new CitaEvento("CREADA", 1L, "Luis", "luis@example.com", 1L, 1L, null, null, Instant.now());
 

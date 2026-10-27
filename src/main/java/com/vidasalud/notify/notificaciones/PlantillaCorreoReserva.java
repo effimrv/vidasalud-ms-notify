@@ -44,14 +44,14 @@ final class PlantillaCorreoReserva {
             <tr><td class="hero pad" style="background:#123255;background-image:linear-gradient(135deg,#1f5288 0%,#123255 55%,#081729 100%);padding:32px 32px 30px;color:#ffffff;">
               <div style="font-family:'Space Grotesk',Arial,sans-serif;font-size:20px;font-weight:700;letter-spacing:-.3px;">VidaSalud</div>
               <div style="margin-top:18px;">
-                <span style="display:inline-block;background:rgba(255,255,255,.14);color:#bfe0ff;font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;padding:6px 12px;border-radius:20px;">Cita solicitada</span>
+                <span style="display:inline-block;background:rgba(255,255,255,.14);color:#bfe0ff;font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;padding:6px 12px;border-radius:20px;">{{etiqueta}}</span>
               </div>
               <div class="titulo" style="font-family:'Space Grotesk',Arial,sans-serif;font-size:30px;font-weight:700;line-height:1.15;margin-top:14px;">Tu cita #{{citaId}}</div>
-              <div style="font-size:15px;color:#cfe4fa;margin-top:8px;line-height:1.5;">Tu solicitud de atención quedó registrada.</div>
+              <div style="font-size:15px;color:#cfe4fa;margin-top:8px;line-height:1.5;">{{subtitulo}}</div>
             </td></tr>
 
             <tr><td class="pad" style="padding:28px 32px 8px;font-size:16px;line-height:1.6;">
-              Hola <strong style="color:#0d2f66;">{{paciente}}</strong>, te avisaremos por este mismo correo cuando la hora sea confirmada.
+              Hola <strong style="color:#0d2f66;">{{paciente}}</strong>, {{mensaje}}
             </td></tr>
 
             <tr><td class="pad" style="padding:12px 32px 0;">
@@ -90,9 +90,9 @@ final class PlantillaCorreoReserva {
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #cfe4fa;border-radius:14px;">
               <tr><td class="tarjeta" style="padding:16px 18px;">
                 <div style="font-size:12px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#5b7ca8;">Estado</div>
-                <div class="valor" style="font-size:18px;font-weight:700;color:#0d2f66;margin-top:4px;">Pendiente de confirmación</div>
+                <div class="valor" style="font-size:18px;font-weight:700;color:#0d2f66;margin-top:4px;">{{estado}}</div>
                 <div style="margin-top:12px;">
-                  <span style="display:inline-block;background:#d8ecfd;color:#0d2f66;font-size:13px;font-weight:700;padding:6px 14px;border-radius:20px;">&#9679; Solicitada</span>
+                  <span style="display:inline-block;background:#d8ecfd;color:#0d2f66;font-size:13px;font-weight:700;padding:6px 14px;border-radius:20px;">&#9679; {{badge}}</span>
                 </div>
               </td></tr>
               </table>
@@ -121,21 +121,41 @@ final class PlantillaCorreoReserva {
     }
 
     static @NonNull String texto(CitaEvento evento, @NonNull String paciente) {
-        return "Tu cita #" + evento.citaId() + " fue solicitada\n"
-                + "Hola " + paciente + ", te avisaremos por correo cuando la hora sea confirmada.\n"
+        Textos t = textos(evento);
+        return "Tu cita #" + evento.citaId() + " " + t.verbo() + "\n"
+                + "Hola " + paciente + ", " + t.mensaje() + "\n"
                 + "Fecha y hora: " + fecha(evento) + "\n"
                 + "Servicio: " + evento.servicioId() + "\n"
                 + "Box: " + evento.boxId() + "\n";
     }
 
     static @NonNull String html(CitaEvento evento, @NonNull String paciente) {
+        Textos t = textos(evento);
         return Objects.requireNonNull(HTML
                 .replace("{{citaId}}", String.valueOf(evento.citaId()))
+                .replace("{{etiqueta}}", t.etiqueta())
+                .replace("{{subtitulo}}", t.subtitulo())
+                .replace("{{mensaje}}", t.mensaje())
+                .replace("{{estado}}", t.estado())
+                .replace("{{badge}}", t.badge())
                 .replace("{{paciente}}", HtmlUtils.htmlEscape(paciente))
                 .replace("{{fecha}}", fecha(evento))
                 .replace("{{servicio}}", HtmlUtils.htmlEscape("N° " + evento.servicioId()))
                 .replace("{{box}}", HtmlUtils.htmlEscape("N° " + evento.boxId()))
                 .replace("{{sitio}}", SITIO));
+    }
+
+    /** Textos del correo según el estado de la cita: solicitada (CREADA) o confirmada (CONFIRMADA). */
+    private record Textos(String etiqueta, String subtitulo, String mensaje, String estado, String badge, String verbo) {
+    }
+
+    private static @NonNull Textos textos(CitaEvento evento) {
+        return "CONFIRMADA".equals(evento.tipo())
+                ? new Textos("Cita confirmada", "Tu hora quedó confirmada.",
+                        "te esperamos en la fecha indicada.", "Hora confirmada", "Confirmada", "fue confirmada")
+                : new Textos("Cita solicitada", "Tu solicitud de atención quedó registrada.",
+                        "te avisaremos por este mismo correo cuando la hora sea confirmada.",
+                        "Pendiente de confirmación", "Solicitada", "fue solicitada");
     }
 
     private static @NonNull String fecha(CitaEvento evento) {
