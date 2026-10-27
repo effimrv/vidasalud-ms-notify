@@ -20,9 +20,12 @@ public class NotificacionService {
 
     private final RegistroActividad<Notificacion> registro = new RegistroActividad<>();
     private final String marcaFallaTransitoria;
+    private final CorreoReservas correoReservas;
 
-    public NotificacionService(@Value("${vidasalud.simulacion.falla-transitoria-paciente}") String marcaFallaTransitoria) {
+    public NotificacionService(@Value("${vidasalud.simulacion.falla-transitoria-paciente}") String marcaFallaTransitoria,
+                               CorreoReservas correoReservas) {
         this.marcaFallaTransitoria = marcaFallaTransitoria;
+        this.correoReservas = correoReservas;
     }
 
     public void notificar(CitaEvento evento) {
@@ -34,6 +37,12 @@ public class NotificacionService {
         String asunto = "VidaSalud: tu cita #" + evento.citaId() + " " + describir(evento.tipo());
         String fecha = evento.fechaHora() == null ? "" : " para el " + evento.fechaHora().format(FORMATO_FECHA);
         String mensaje = "Hola " + paciente + ", tu cita #" + evento.citaId() + fecha + " " + describir(evento.tipo()) + ".";
+
+        if ("CREADA".equals(evento.tipo())) {
+            // Se envía antes de registrar: si el SMTP falla, el reintento no deja una notificación duplicada.
+            correoReservas.enviar("VidaSalud: nueva reserva #" + evento.citaId(),
+                    "El paciente " + paciente + " reservó la cita #" + evento.citaId() + fecha + ".");
+        }
 
         registro.agregar(new Notificacion(evento.citaId(), paciente, "EMAIL", asunto, mensaje, Instant.now()));
         log.info("Correo enviado a {}: {}", paciente, asunto);

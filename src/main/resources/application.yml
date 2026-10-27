@@ -10,6 +10,15 @@ spring:
     username: ${RABBITMQ_USER:vidasalud}
     password: ${RABBITMQ_PASS:vidasalud}
     connection-timeout: 5s
+  mail:
+    # Gmail SMTP con contraseña de aplicación. Las credenciales llegan por variables de entorno, nunca en el repo.
+    host: smtp.gmail.com
+    port: 587
+    username: ${SMTP_USUARIO:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
   security:
     oauth2:
       resourceserver:
@@ -67,6 +76,9 @@ vidasalud:
   seguridad:
     # Valida el JWT de Entra ID. Solo se desactiva con el perfil "local" para pruebas sin token.
     habilitada: ${SEGURIDAD_HABILITADA:true}
+  correo:
+    # Destinatario fijo de los correos de reserva (cada CREADA). Mientras no haya bandeja por paciente.
+    reservas-destinatario: cxxlyy06@gmail.com
   simulacion:
     # Si el nombre del paciente contiene este texto, el envío de correo falla de forma transitoria.
     # Sirve para demostrar los reintentos y el envío final a la DLQ.
