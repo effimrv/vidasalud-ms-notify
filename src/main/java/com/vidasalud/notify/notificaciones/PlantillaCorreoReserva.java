@@ -5,34 +5,98 @@ import org.springframework.lang.NonNull;
 import org.springframework.web.util.HtmlUtils;
 
 import java.time.format.DateTimeFormatter;
+import java.util.Objects;
 
-/** Arma el contenido del correo de reserva: versión de texto y versión HTML con estilos en línea. */
+/** Arma el contenido del correo de reserva: versión de texto y versión HTML con la misma estética del sitio. */
 final class PlantillaCorreoReserva {
 
     private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
 
+    /** Mismo dominio que el frontend de VidaSalud, para el botón del correo. */
+    private static final String SITIO = "https://e7u1iiqh4k.execute-api.us-east-1.amazonaws.com";
+
     private static final String HTML = """
             <!doctype html>
             <html lang="es">
-            <body style="margin:0;padding:0;background:#eef3f2;font-family:Arial,Helvetica,sans-serif;color:#1f2d2b;">
-            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#eef3f2;padding:24px 12px;">
+            <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+            </head>
+            <body style="margin:0;padding:0;background:#eaf5ff;font-family:'DM Sans',Arial,Helvetica,sans-serif;color:#123a66;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#eaf5ff;padding:28px 12px;">
             <tr><td align="center">
-            <table role="presentation" width="560" cellspacing="0" cellpadding="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:12px;">
-            <tr><td style="background:#0f766e;padding:24px 28px;border-radius:12px 12px 0 0;color:#ffffff;">
-              <div style="font-size:12px;letter-spacing:1px;text-transform:uppercase;opacity:.85;">VidaSalud</div>
-              <div style="font-size:22px;font-weight:bold;margin-top:6px;">Nueva reserva #{{citaId}}</div>
+            <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid #cfe4fa;">
+
+            <tr><td style="background:#123255;background-image:linear-gradient(135deg,#1f5288 0%,#123255 55%,#081729 100%);padding:32px 32px 30px;color:#ffffff;">
+              <div style="font-family:'Space Grotesk',Arial,sans-serif;font-size:20px;font-weight:700;letter-spacing:-.3px;">VidaSalud</div>
+              <div style="margin-top:18px;">
+                <span style="display:inline-block;background:rgba(255,255,255,.14);color:#bfe0ff;font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;padding:6px 12px;border-radius:20px;">Nueva reserva</span>
+              </div>
+              <div style="font-family:'Space Grotesk',Arial,sans-serif;font-size:30px;font-weight:700;line-height:1.15;margin-top:14px;">Nueva reserva #{{citaId}}</div>
+              <div style="font-size:15px;color:#cfe4fa;margin-top:8px;line-height:1.5;">Hay una nueva solicitud de atención registrada en el centro.</div>
             </td></tr>
-            <tr><td style="padding:24px 28px 8px;font-size:15px;line-height:1.5;">
-              Se registró una nueva reserva a nombre de <strong>{{paciente}}</strong>.
+
+            <tr><td style="padding:28px 32px 8px;font-size:16px;line-height:1.6;">
+              Se registró una reserva a nombre de <strong style="color:#0d2f66;">{{paciente}}</strong>.
             </td></tr>
-            <tr><td style="padding:8px 28px 24px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #d7e6e3;border-radius:10px;">
-              {{filas}}
+
+            <tr><td style="padding:12px 32px 0;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#1a6bf0;background-image:linear-gradient(135deg,#1a6bf0 0%,#1558c9 100%);border-radius:14px;">
+              <tr><td style="padding:20px 24px;color:#ffffff;">
+                <div style="font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:.85;">Fecha y hora</div>
+                <div style="font-family:'Space Grotesk',Arial,sans-serif;font-size:26px;font-weight:700;margin-top:4px;">{{fecha}}</div>
+              </td></tr>
               </table>
             </td></tr>
-            <tr><td style="padding:0 28px 24px;font-size:12px;line-height:1.5;color:#5b7470;">
+
+            <tr><td style="padding:14px 32px 0;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+              <tr>
+                <td width="50%" valign="top" style="padding-right:7px;">
+                  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#eaf5ff;border:1px solid #cfe4fa;border-radius:14px;">
+                  <tr><td style="padding:16px 18px;">
+                    <div style="font-size:12px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#5b7ca8;">Servicio</div>
+                    <div style="font-family:'Space Grotesk',Arial,sans-serif;font-size:20px;font-weight:700;color:#0d2f66;margin-top:4px;">{{servicio}}</div>
+                  </td></tr>
+                  </table>
+                </td>
+                <td width="50%" valign="top" style="padding-left:7px;">
+                  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#eaf5ff;border:1px solid #cfe4fa;border-radius:14px;">
+                  <tr><td style="padding:16px 18px;">
+                    <div style="font-size:12px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#5b7ca8;">Box</div>
+                    <div style="font-family:'Space Grotesk',Arial,sans-serif;font-size:20px;font-weight:700;color:#0d2f66;margin-top:4px;">{{box}}</div>
+                  </td></tr>
+                  </table>
+                </td>
+              </tr>
+              </table>
+            </td></tr>
+
+            <tr><td style="padding:14px 32px 0;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #cfe4fa;border-radius:14px;">
+              <tr><td style="padding:16px 18px;">
+                <div style="font-size:12px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#5b7ca8;">Paciente</div>
+                <div style="font-size:18px;font-weight:700;color:#0d2f66;margin-top:4px;">{{paciente}}</div>
+                <div style="margin-top:12px;">
+                  <span style="display:inline-block;background:#d8ecfd;color:#0d2f66;font-size:13px;font-weight:700;padding:6px 14px;border-radius:20px;">&#9679; Solicitada</span>
+                </div>
+              </td></tr>
+              </table>
+            </td></tr>
+
+            <tr><td align="center" style="padding:28px 32px 8px;">
+              <a href="{{sitio}}" style="display:inline-block;background:#1a6bf0;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 28px;border-radius:8px;">Ver en VidaSalud</a>
+            </td></tr>
+
+            <tr><td style="padding:20px 32px 26px;font-size:12px;line-height:1.5;color:#5b7ca8;" align="center">
               Correo automático de VidaSalud. Por favor no respondas a este mensaje.
             </td></tr>
+
+            <tr><td style="background:#0d2f66;padding:16px 32px;font-size:12px;color:#cfe4fa;" align="center">
+              VidaSalud · Atención médica de calidad
+            </td></tr>
+
             </table>
             </td></tr>
             </table>
@@ -52,30 +116,17 @@ final class PlantillaCorreoReserva {
     }
 
     static @NonNull String html(CitaEvento evento, @NonNull String paciente) {
-        // Este correo solo se envía para reservas nuevas, así que el estado es siempre "Solicitada".
-        String filas = fila("Fecha y hora", fecha(evento), true)
-                + fila("Paciente", paciente, false)
-                + fila("Servicio", "N° " + evento.servicioId(), false)
-                + fila("Box", "N° " + evento.boxId(), false)
-                + fila("Estado", "Solicitada", false);
-
-        return HTML
+        return Objects.requireNonNull(HTML
                 .replace("{{citaId}}", String.valueOf(evento.citaId()))
                 .replace("{{paciente}}", HtmlUtils.htmlEscape(paciente))
-                .replace("{{filas}}", filas);
+                .replace("{{fecha}}", fecha(evento))
+                .replace("{{servicio}}", HtmlUtils.htmlEscape("N° " + evento.servicioId()))
+                .replace("{{box}}", HtmlUtils.htmlEscape("N° " + evento.boxId()))
+                .replace("{{sitio}}", SITIO));
     }
 
     private static @NonNull String fecha(CitaEvento evento) {
-        return evento.fechaHora() == null ? "Por confirmar" : evento.fechaHora().format(FORMATO_FECHA);
-    }
-
-    private static String fila(@NonNull String etiqueta, @NonNull String valor, boolean primera) {
-        String borde = primera ? "" : "border-top:1px solid #d7e6e3;";
-        return "<tr><td style=\"padding:14px 18px;" + borde + "\">"
-                + "<div style=\"font-size:12px;color:#5b7470;text-transform:uppercase;letter-spacing:.5px;\">"
-                + HtmlUtils.htmlEscape(etiqueta) + "</div>"
-                + "<div style=\"font-size:16px;font-weight:bold;margin-top:2px;\">"
-                + HtmlUtils.htmlEscape(valor) + "</div>"
-                + "</td></tr>\n";
+        return Objects.requireNonNull(
+                evento.fechaHora() == null ? "Por confirmar" : evento.fechaHora().format(FORMATO_FECHA));
     }
 }
