@@ -10,7 +10,6 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** El filtro JWT acepta solo tokens vigentes, de nuestro tenant y dirigidos a la API de VidaSalud. */
-@SuppressWarnings("null")
 class ValidacionJwtConfigTest {
 
     private static final String EMISOR = "https://login.microsoftonline.com/tenant-vidasalud/v2.0";
