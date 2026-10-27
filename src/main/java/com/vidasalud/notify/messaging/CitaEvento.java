@@ -14,6 +14,7 @@ public record CitaEvento(
         String tipo,
         Long citaId,
         String pacienteNombre,
+        String pacienteCorreo,
         Long servicioId,
         Long boxId,
         String estado,

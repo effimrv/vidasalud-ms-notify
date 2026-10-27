@@ -44,14 +44,14 @@ final class PlantillaCorreoReserva {
             <tr><td class="hero pad" style="background:#123255;background-image:linear-gradient(135deg,#1f5288 0%,#123255 55%,#081729 100%);padding:32px 32px 30px;color:#ffffff;">
               <div style="font-family:'Space Grotesk',Arial,sans-serif;font-size:20px;font-weight:700;letter-spacing:-.3px;">VidaSalud</div>
               <div style="margin-top:18px;">
-                <span style="display:inline-block;background:rgba(255,255,255,.14);color:#bfe0ff;font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;padding:6px 12px;border-radius:20px;">Nueva reserva</span>
+                <span style="display:inline-block;background:rgba(255,255,255,.14);color:#bfe0ff;font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;padding:6px 12px;border-radius:20px;">Cita solicitada</span>
               </div>
-              <div class="titulo" style="font-family:'Space Grotesk',Arial,sans-serif;font-size:30px;font-weight:700;line-height:1.15;margin-top:14px;">Nueva reserva #{{citaId}}</div>
-              <div style="font-size:15px;color:#cfe4fa;margin-top:8px;line-height:1.5;">Hay una nueva solicitud de atención registrada en el centro.</div>
+              <div class="titulo" style="font-family:'Space Grotesk',Arial,sans-serif;font-size:30px;font-weight:700;line-height:1.15;margin-top:14px;">Tu cita #{{citaId}}</div>
+              <div style="font-size:15px;color:#cfe4fa;margin-top:8px;line-height:1.5;">Tu solicitud de atención quedó registrada.</div>
             </td></tr>
 
             <tr><td class="pad" style="padding:28px 32px 8px;font-size:16px;line-height:1.6;">
-              Se registró una reserva a nombre de <strong style="color:#0d2f66;">{{paciente}}</strong>.
+              Hola <strong style="color:#0d2f66;">{{paciente}}</strong>, te avisaremos por este mismo correo cuando la hora sea confirmada.
             </td></tr>
 
             <tr><td class="pad" style="padding:12px 32px 0;">
@@ -89,8 +89,8 @@ final class PlantillaCorreoReserva {
             <tr><td class="pad" style="padding:14px 32px 0;">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ffffff;border:1px solid #cfe4fa;border-radius:14px;">
               <tr><td class="tarjeta" style="padding:16px 18px;">
-                <div style="font-size:12px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#5b7ca8;">Paciente</div>
-                <div class="valor" style="font-size:18px;font-weight:700;color:#0d2f66;margin-top:4px;">{{paciente}}</div>
+                <div style="font-size:12px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#5b7ca8;">Estado</div>
+                <div class="valor" style="font-size:18px;font-weight:700;color:#0d2f66;margin-top:4px;">Pendiente de confirmación</div>
                 <div style="margin-top:12px;">
                   <span style="display:inline-block;background:#d8ecfd;color:#0d2f66;font-size:13px;font-weight:700;padding:6px 14px;border-radius:20px;">&#9679; Solicitada</span>
                 </div>
@@ -99,7 +99,7 @@ final class PlantillaCorreoReserva {
             </td></tr>
 
             <tr><td class="pad" align="center" style="padding:28px 32px 8px;">
-              <a class="boton" href="{{sitio}}" style="display:inline-block;background:#1a6bf0;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 28px;border-radius:8px;">Ver en VidaSalud</a>
+              <a class="boton" href="{{sitio}}" style="display:inline-block;background:#1a6bf0;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 28px;border-radius:8px;">Ver mi cita en VidaSalud</a>
             </td></tr>
 
             <tr><td class="pad" style="padding:20px 32px 26px;font-size:12px;line-height:1.5;color:#5b7ca8;" align="center">
@@ -121,8 +121,8 @@ final class PlantillaCorreoReserva {
     }
 
     static @NonNull String texto(CitaEvento evento, @NonNull String paciente) {
-        return "Nueva reserva #" + evento.citaId() + "\n"
-                + "Paciente: " + paciente + "\n"
+        return "Tu cita #" + evento.citaId() + " fue solicitada\n"
+                + "Hola " + paciente + ", te avisaremos por correo cuando la hora sea confirmada.\n"
                 + "Fecha y hora: " + fecha(evento) + "\n"
                 + "Servicio: " + evento.servicioId() + "\n"
                 + "Box: " + evento.boxId() + "\n";

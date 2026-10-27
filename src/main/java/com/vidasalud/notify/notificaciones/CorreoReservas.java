@@ -8,7 +8,10 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 
-/** Envía por SMTP el correo de cada reserva nueva al destinatario configurado en vidasalud.correo. */
+/**
+ * Envía por SMTP el correo de cada reserva nueva al paciente. Si la cita no trae correo,
+ * usa el destinatario configurado en vidasalud.correo como respaldo.
+ */
 @Component
 public class CorreoReservas {
 
@@ -25,12 +28,12 @@ public class CorreoReservas {
     }
 
     /** Envía un correo multiparte: texto plano para clientes sin HTML y la versión con estilos. */
-    public void enviar(@NonNull String asunto, @NonNull String texto, @NonNull String html) {
+    public void enviar(String correoPaciente, @NonNull String asunto, @NonNull String texto, @NonNull String html) {
         try {
             MimeMessage correo = mailSender.createMimeMessage();
             MimeMessageHelper ayuda = new MimeMessageHelper(correo, true, "UTF-8");
             ayuda.setFrom(remitente);
-            ayuda.setTo(destinatario);
+            ayuda.setTo(correoPaciente == null || correoPaciente.isBlank() ? destinatario : correoPaciente);
             ayuda.setSubject(asunto);
             ayuda.setText(texto, html);
             mailSender.send(correo);
