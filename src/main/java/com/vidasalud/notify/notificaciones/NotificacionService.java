@@ -41,7 +41,8 @@ public class NotificacionService {
         if ("CREADA".equals(evento.tipo())) {
             // Se envía antes de registrar: si el SMTP falla, el reintento no deja una notificación duplicada.
             correoReservas.enviar("VidaSalud: nueva reserva #" + evento.citaId(),
-                    "El paciente " + paciente + " reservó la cita #" + evento.citaId() + fecha + ".");
+                    PlantillaCorreoReserva.texto(evento, paciente),
+                    PlantillaCorreoReserva.html(evento, paciente));
         }
 
         registro.agregar(new Notificacion(evento.citaId(), paciente, "EMAIL", asunto, mensaje, Instant.now()));
