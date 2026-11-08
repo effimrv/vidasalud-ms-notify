@@ -1,5 +1,7 @@
 package com.vidasalud.notify.messaging;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.time.Instant;
 import java.time.LocalDateTime;
 
@@ -10,6 +12,7 @@ import java.time.LocalDateTime;
  * @param fechaHora  fecha y hora agendada de la cita
  * @param ocurridoEn instante en que se generó el evento
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record CitaEvento(
         String tipo,
         Long citaId,
